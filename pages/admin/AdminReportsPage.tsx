@@ -23,22 +23,26 @@ const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ orders, products })
             .reduce((sum, order) => sum + (order.product.price * order.product.quantity), 0);
 
         // 2. Best Selling Products
-        // FIX: Use the generic form of reduce for better type inference, which resolves the error in the following .sort() method.
-        const productSales = orders.reduce<Record<string, number>>((acc, order) => {
+        // FIX: The use of a generic type argument in `reduce` was causing a TypeScript error.
+        // By casting the initial value (`{}`), we can ensure `productSales` is correctly typed,
+        // which in turn fixes the error on the `.sort()` method below.
+        const productSales = orders.reduce((acc, order) => {
             acc[order.product.name] = (acc[order.product.name] || 0) + order.product.quantity;
             return acc;
-        }, {});
+        }, {} as Record<string, number>);
         
         const bestSellingProducts = Object.entries(productSales)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5);
 
         // 3. Top Wilayas
-        // FIX: Use the generic form of reduce for better type inference, which resolves the error in the following .sort() method.
-        const wilayaOrders = orders.reduce<Record<string, number>>((acc, order) => {
+        // FIX: The use of a generic type argument in `reduce` was causing a TypeScript error.
+        // By casting the initial value (`{}`), we can ensure `wilayaOrders` is correctly typed,
+        // which in turn fixes the error on the `.sort()` method below.
+        const wilayaOrders = orders.reduce((acc, order) => {
             acc[order.customer.wilaya] = (acc[order.customer.wilaya] || 0) + 1;
             return acc;
-        }, {});
+        }, {} as Record<string, number>);
 
         const topWilayas = Object.entries(wilayaOrders)
             .sort((a, b) => b[1] - a[1])

@@ -58,15 +58,24 @@ const OrderPage: React.FC<OrderPageProps> = ({ product, adminConfig, onOrderSucc
         setStatus('ERROR');
         return;
     }
+    
+    // ** بداية الإصلاح: استخدام FormData لتجنب مشاكل CORS **
+    const submissionData = new FormData();
+    for (const key in formData) {
+        submissionData.append(key, formData[key as keyof OrderFormData].toString());
+    }
 
     try {
+      // ملاحظة: لا نضع هيدر 'Content-Type'. المتصفح يحدده تلقائيًا مع FormData.
       const response = await fetch(SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(formData),
+        body: submissionData,
       });
+     // ** نهاية الإصلاح **
 
-      if (!response.ok) throw new Error(`فشل الطلب. رمز الحالة: ${response.status}.`);
+      if (!response.ok) {
+        throw new Error(`فشل الطلب. استجابة الشبكة لم تكن سليمة. (Status: ${response.status})`);
+      }
       
       const result = await response.json();
       
@@ -92,12 +101,15 @@ const OrderPage: React.FC<OrderPageProps> = ({ product, adminConfig, onOrderSucc
         onOrderSuccess(newOrder);
         window.location.hash = `#/order/success/${result.orderId}`;
       } else {
-        throw new Error(result.message || 'رفض السكربت الطلب.');
+        throw new Error(result.message || 'رفض السكربت الطلب أو أرجع استجابة غير صالحة.');
       }
 
     } catch (err) {
       console.error("Submission Error:", err);
-      let errorMessage = (err instanceof Error) ? err.message : 'حدث خطأ غير معروف.';
+      let errorMessage = "فشل إرسال الطلب بسبب مشكلة في الشبكة أو خطأ في السكربت. تحقق من رابط السكربت وتأكد من نشره بشكل صحيح وأنه محدّث.";
+       if (err instanceof Error && err.message) {
+           errorMessage = err.message;
+        }
       setError(`فشل إرسال الطلب. ${errorMessage}`);
       setStatus('ERROR');
     }
