@@ -18,6 +18,27 @@ export interface OrderFormData {
   notes: string;
 }
 
+export type OrderStatus = 'قيد التنفيذ' | 'تم التوصيل' | 'ملغي';
+
+export interface Order {
+  id: string;
+  timestamp: string;
+  customer: {
+    name: string;
+    phone: string;
+    email: string;
+    wilaya: string;
+    address: string;
+  };
+  product: {
+    name: string;
+    quantity: number;
+  };
+  notes: string;
+  status: OrderStatus;
+}
+
+
 export interface AdminConfig {
     scriptUrl: string;
     sheetUrl: string;

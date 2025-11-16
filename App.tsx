@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import ProductPage from './pages/ProductPage';
 import OrderPage from './pages/OrderPage';
+import OrderSuccessPage from './pages/OrderSuccessPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminPage from './pages/admin/AdminPage';
+import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import ProductForm from './pages/admin/ProductForm';
 import { initialProducts } from './data/products';
-import { Product, AdminConfig } from './types';
+import { Product, AdminConfig, Order } from './types';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 
@@ -15,25 +17,21 @@ const ADMIN_PASSWORD = 'admin123';
 export default function App() {
     const [route, setRoute] = useState(window.location.hash);
     const [products, setProducts] = useState<Product[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [adminConfig, setAdminConfig] = useState<AdminConfig>({ scriptUrl: '', sheetUrl: '' });
 
     useEffect(() => {
-        // Load products from localStorage or use initial data
+        // Load data from localStorage or use initial data
         const storedProducts = localStorage.getItem('products');
-        if (storedProducts) {
-            setProducts(JSON.parse(storedProducts));
-        } else {
-            setProducts(initialProducts);
-            localStorage.setItem('products', JSON.stringify(initialProducts));
-        }
+        setProducts(storedProducts ? JSON.parse(storedProducts) : initialProducts);
 
-        // Load admin config from localStorage
+        const storedOrders = localStorage.getItem('orders');
+        setOrders(storedOrders ? JSON.parse(storedOrders) : []);
+        
         const storedConfig = localStorage.getItem('adminConfig');
-        if (storedConfig) {
-            setAdminConfig(JSON.parse(storedConfig));
-        }
+        setAdminConfig(storedConfig ? JSON.parse(storedConfig) : { scriptUrl: '', sheetUrl: '' });
     }, []);
 
     useEffect(() => {
@@ -58,6 +56,16 @@ export default function App() {
         setProducts(updatedProducts);
         localStorage.setItem('products', JSON.stringify(updatedProducts));
     };
+
+    const handleSaveOrders = (updatedOrders: Order[]) => {
+        setOrders(updatedOrders);
+        localStorage.setItem('orders', JSON.stringify(updatedOrders));
+    };
+
+    const handleNewOrder = (newOrder: Order) => {
+        const updatedOrders = [newOrder, ...orders];
+        handleSaveOrders(updatedOrders);
+    };
     
     const handleSaveConfig = (config: AdminConfig) => {
         setAdminConfig(config);
@@ -69,8 +77,10 @@ export default function App() {
 
         // Admin Routes
         if (path.startsWith('/admin')) {
-            if (!isAdmin) {
-                return <AdminLogin onLogin={handleLogin} />;
+            if (!isAdmin) return <AdminLogin onLogin={handleLogin} />;
+            
+            if (path === '/admin/orders') {
+                return <AdminOrdersPage orders={orders} onSave={handleSaveOrders} />;
             }
             if (path === '/admin/add') {
                 return <ProductForm products={products} onSave={handleSaveProducts} />;
@@ -82,7 +92,7 @@ export default function App() {
                     ? <ProductForm product={product} products={products} onSave={handleSaveProducts} /> 
                     : <h2 className="text-center text-2xl font-bold text-red-500 p-8">لم يتم العثور على المنتج.</h2>;
             }
-            return <AdminPage products={products} onSave={handleSaveProducts} adminConfig={adminConfig} onSaveConfig={handleSaveConfig} />;
+            return <AdminPage products={products} orders={orders} onSaveProducts={handleSaveProducts} adminConfig={adminConfig} onSaveConfig={handleSaveConfig} />;
         }
         
         // Customer Routes
@@ -94,11 +104,16 @@ export default function App() {
                 : <h2 className="text-center text-2xl font-bold text-red-500 p-8">لم يتم العثور على المنتج.</h2>;
         }
 
+        if (path.startsWith('/order/success/')) {
+            const orderId = path.split('/')[3];
+            return <OrderSuccessPage orderId={orderId} />;
+        }
+
         if (path.startsWith('/order/')) {
             const productId = path.split('/')[2];
             const product = products.find(p => p.id === productId);
             return product 
-                ? <OrderPage product={product} adminConfig={adminConfig} /> 
+                ? <OrderPage product={product} adminConfig={adminConfig} onOrderSuccess={handleNewOrder} /> 
                 : <h2 className="text-center text-2xl font-bold text-red-500 p-8">لم يتم العثور على المنتج للطلب.</h2>;
         }
 
