@@ -1,0 +1,5 @@
+{
+  "name": "Cloud Order Form",
+  "description": "A sleek and modern order form that submits data to a Google Apps Script endpoint, creating a new entry in a Google Sheet. It provides real-time feedback on submission success or failure.",
+  "requestFramePermissions": []
+}
