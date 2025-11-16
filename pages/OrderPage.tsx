@@ -59,17 +59,15 @@ const OrderPage: React.FC<OrderPageProps> = ({ product, adminConfig, onOrderSucc
         return;
     }
     
-    // ** بداية الإصلاح: استخدام FormData لتجنب مشاكل CORS **
-    const submissionData = new FormData();
-    for (const key in formData) {
-        submissionData.append(key, formData[key as keyof OrderFormData].toString());
-    }
-
     try {
-      // ملاحظة: لا نضع هيدر 'Content-Type'. المتصفح يحدده تلقائيًا مع FormData.
+      // ** بداية الإصلاح: إرسال البيانات كنص JSON لتجنب مشاكل CORS **
       const response = await fetch(SCRIPT_URL, {
         method: 'POST',
-        body: submissionData,
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8', // استخدام text/plain لتجنب الطلبات المسبقة (preflight)
+        },
+        body: JSON.stringify(formData),
+        mode: 'cors', // السماح بقراءة الرد
       });
      // ** نهاية الإصلاح **
 
@@ -106,8 +104,8 @@ const OrderPage: React.FC<OrderPageProps> = ({ product, adminConfig, onOrderSucc
 
     } catch (err) {
       console.error("Submission Error:", err);
-      let errorMessage = "فشل إرسال الطلب بسبب مشكلة في الشبكة أو خطأ في السكربت. تحقق من رابط السكربت وتأكد من نشره بشكل صحيح وأنه محدّث.";
-       if (err instanceof Error && err.message) {
+      let errorMessage = "تأكد من أن رابط Google Apps Script صحيح، وأنك قمت بتحديث الكود الخاص به ونشره كـ 'نشر جديد'.";
+       if (err instanceof Error && err.name !== 'TypeError') { // TypeError is often "Failed to fetch"
            errorMessage = err.message;
         }
       setError(`فشل إرسال الطلب. ${errorMessage}`);
