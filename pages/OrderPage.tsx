@@ -1,25 +1,25 @@
 import React, { useState, useCallback } from 'react';
-import { OrderFormData, Product } from '../types';
+import { OrderFormData, Product, AdminConfig } from '../types';
 import OrderForm from '../components/OrderForm';
 import { CheckCircleIcon } from '../components/icons/CheckCircleIcon';
 import { ExclamationTriangleIcon } from '../components/icons/ExclamationTriangleIcon';
-
-// !! IMPORTANT !!
-// Replace this URL with your actual Google Apps Script Web App URL.
-const SCRIPT_URL = "PUT_YOUR_SCRIPT_URL_HERE";
+import { wilayas } from '../data/wilayas';
 
 type PageStatus = 'IDLE' | 'SUBMITTING' | 'SUCCESS' | 'ERROR';
 
 interface OrderPageProps {
   product: Product;
+  adminConfig: AdminConfig;
 }
 
-const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
+const OrderPage: React.FC<OrderPageProps> = ({ product, adminConfig }) => {
   const initialFormData: OrderFormData = {
     name: '',
     product: product.name,
     quantity: 1,
     phone: '',
+    email: '',
+    wilaya: '',
     address: '',
     notes: ''
   };
@@ -29,14 +29,19 @@ const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
   const [error, setError] = useState<string | null>(null);
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
 
-  const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    
+    let processedValue: string | number = value;
+    if (type === 'number') {
+        processedValue = Math.max(1, Math.min(parseInt(value, 10) || 1, product.quantity));
+    }
     
     setFormData(prevData => ({
       ...prevData,
-      [name]: type === 'number' ? Math.max(1, parseInt(value, 10) || 1) : value,
+      [name]: processedValue,
     }));
-  }, []);
+  }, [product.quantity]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,18 +49,24 @@ const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
     setError(null);
     setSubmittedOrderId(null);
 
-    if (SCRIPT_URL === "PUT_YOUR_SCRIPT_URL_HERE") {
-        setError("خطأ: يرجى تحديث رابط Google Apps Script في ملف pages/OrderPage.tsx");
+    const SCRIPT_URL = adminConfig.scriptUrl;
+
+    if (!SCRIPT_URL) {
+        setError("خطأ لصاحب المتجر: رابط Google Apps Script غير موجود. يرجى إضافته من لوحة التحكم في قسم الإعدادات.");
         setStatus('ERROR');
         return;
     }
+     if (product.quantity === 0) {
+        setError("عذراً، لقد نفدت كمية هذا المنتج.");
+        setStatus('ERROR');
+        return;
+    }
+
 
     try {
       const response = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: {
-          // This Content-Type is a common workaround to avoid CORS preflight issues with Google Apps Script.
-          // The script can still parse the JSON from the post body.
           'Content-Type': 'text/plain;charset=utf-8',
         },
         body: JSON.stringify(formData),
@@ -71,6 +82,8 @@ const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
         setSubmittedOrderId(result.orderId);
         setStatus('SUCCESS');
         setFormData(initialFormData);
+        // Note: In a real app, we'd update the product quantity globally.
+        // For this static setup, we'll assume the backend handles it.
       } else {
         throw new Error(result.message || 'رفض السكربت الطلب. تحقق من سجلات التنفيذ في Apps Script.');
       }
@@ -78,7 +91,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
     } catch (err) {
       console.error("Submission Error:", err);
       let errorMessage = 'حدث خطأ غير معروف. يرجى التحقق من الكونسول ورابط السكربت.';
-      if (err instanceof TypeError) { // Often indicates a network error or CORS issue
+      if (err instanceof TypeError) {
           errorMessage = 'حدث خطأ في الشبكة أو مشكلة في CORS. تأكد من أن السكربت منشور كـ "Web App" ويمكن الوصول إليه بواسطة "Anyone".'
       } else if (err instanceof Error) {
           errorMessage = err.message;
@@ -86,7 +99,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
       setError(`فشل إرسال الطلب. ${errorMessage}`);
       setStatus('ERROR');
     }
-  }, [formData, initialFormData]);
+  }, [formData, initialFormData, adminConfig.scriptUrl, product.quantity]);
 
   const handleReset = () => {
     setFormData(initialFormData);
@@ -101,9 +114,10 @@ const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
         return (
           <div className="text-center p-8">
             <CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">تم استلام الطلب!</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">تم استلام طلبك بنجاح!</h2>
             <p className="text-gray-600 dark:text-gray-300 mb-4">
               شكراً لطلبك. رقم طلبك هو <span className="font-semibold text-primary-600 dark:text-primary-400">{submittedOrderId}</span>.
+              سنتصل بك قريباً للتأكيد.
             </p>
             <button
               onClick={handleReset}
@@ -119,7 +133,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
           <div className="text-center p-8">
             <ExclamationTriangleIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">فشل الإرسال</h2>
-            <p className="text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/50 p-3 rounded-md mb-4">
+            <p className="text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/50 p-3 rounded-md mb-4 text-sm">
               {error}
             </p>
             <button
@@ -139,6 +153,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
             onChange={handleFormChange}
             onSubmit={handleSubmit}
             isLoading={status === 'SUBMITTING'}
+            productStock={product.quantity}
           />
         );
     }

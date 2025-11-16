@@ -2,10 +2,39 @@ import React, { useState, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import ProductPage from './pages/ProductPage';
 import OrderPage from './pages/OrderPage';
-import { products } from './data/products';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminPage from './pages/admin/AdminPage';
+import ProductForm from './pages/admin/ProductForm';
+import { initialProducts } from './data/products';
+import { Product, AdminConfig } from './types';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+
+const ADMIN_PASSWORD = 'admin123';
 
 export default function App() {
     const [route, setRoute] = useState(window.location.hash);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [adminConfig, setAdminConfig] = useState<AdminConfig>({ scriptUrl: '', sheetUrl: '' });
+
+    useEffect(() => {
+        // Load products from localStorage or use initial data
+        const storedProducts = localStorage.getItem('products');
+        if (storedProducts) {
+            setProducts(JSON.parse(storedProducts));
+        } else {
+            setProducts(initialProducts);
+            localStorage.setItem('products', JSON.stringify(initialProducts));
+        }
+
+        // Load admin config from localStorage
+        const storedConfig = localStorage.getItem('adminConfig');
+        if (storedConfig) {
+            setAdminConfig(JSON.parse(storedConfig));
+        }
+    }, []);
 
     useEffect(() => {
         const handleHashChange = () => {
@@ -16,9 +45,47 @@ export default function App() {
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, []);
 
+    const handleLogin = (password: string) => {
+        if (password === ADMIN_PASSWORD) {
+            setIsAdmin(true);
+            window.location.hash = '#/admin';
+        } else {
+            alert('كلمة المرور غير صحيحة.');
+        }
+    };
+
+    const handleSaveProducts = (updatedProducts: Product[]) => {
+        setProducts(updatedProducts);
+        localStorage.setItem('products', JSON.stringify(updatedProducts));
+    };
+    
+    const handleSaveConfig = (config: AdminConfig) => {
+        setAdminConfig(config);
+        localStorage.setItem('adminConfig', JSON.stringify(config));
+    };
+
     const renderPage = () => {
-        const path = route.slice(1) || '/'; // remove #, default to /
+        const path = route.slice(1) || '/';
+
+        // Admin Routes
+        if (path.startsWith('/admin')) {
+            if (!isAdmin) {
+                return <AdminLogin onLogin={handleLogin} />;
+            }
+            if (path === '/admin/add') {
+                return <ProductForm products={products} onSave={handleSaveProducts} />;
+            }
+            if (path.startsWith('/admin/edit/')) {
+                const productId = path.split('/')[3];
+                const product = products.find(p => p.id === productId);
+                return product 
+                    ? <ProductForm product={product} products={products} onSave={handleSaveProducts} /> 
+                    : <h2 className="text-center text-2xl font-bold text-red-500 p-8">لم يتم العثور على المنتج.</h2>;
+            }
+            return <AdminPage products={products} onSave={handleSaveProducts} adminConfig={adminConfig} onSaveConfig={handleSaveConfig} />;
+        }
         
+        // Customer Routes
         if (path.startsWith('/product/')) {
             const productId = path.split('/')[2];
             const product = products.find(p => p.id === productId);
@@ -31,21 +98,22 @@ export default function App() {
             const productId = path.split('/')[2];
             const product = products.find(p => p.id === productId);
             return product 
-                ? <OrderPage product={product} /> 
+                ? <OrderPage product={product} adminConfig={adminConfig} /> 
                 : <h2 className="text-center text-2xl font-bold text-red-500 p-8">لم يتم العثور على المنتج للطلب.</h2>;
         }
 
-        return <HomePage />;
+        return <HomePage products={products} searchQuery={searchQuery} />;
     };
 
     return (
-        <main className="min-h-screen w-full flex flex-col items-center justify-start bg-gray-100 dark:bg-gray-900 p-4 font-sans">
-            <div className="w-full max-w-5xl my-8">
-                {renderPage()}
-                <footer className="text-center mt-12 text-sm text-gray-500 dark:text-gray-400">
-                    <p>متجر إلكتروني مدعوم بواسطة React</p>
-                </footer>
-            </div>
-        </main>
+        <div className="min-h-screen w-full flex flex-col justify-start bg-gray-100 dark:bg-gray-900 font-sans">
+            <Header onSearch={setSearchQuery} />
+            <main className="flex-grow w-full flex flex-col items-center justify-start p-4">
+              <div className="w-full max-w-6xl my-8">
+                  {renderPage()}
+              </div>
+            </main>
+            <Footer />
+        </div>
     );
 }

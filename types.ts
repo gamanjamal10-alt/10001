@@ -4,6 +4,7 @@ export interface Product {
   price: number;
   image: string;
   description: string;
+  quantity: number;
 }
 
 export interface OrderFormData {
@@ -11,6 +12,13 @@ export interface OrderFormData {
   product: string;
   quantity: number;
   phone: string;
+  email: string;
+  wilaya: string;
   address: string;
   notes: string;
+}
+
+export interface AdminConfig {
+    scriptUrl: string;
+    sheetUrl: string;
 }
