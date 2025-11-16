@@ -23,24 +23,24 @@ const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ orders, products })
             .reduce((sum, order) => sum + (order.product.price * order.product.quantity), 0);
 
         // 2. Best Selling Products
-        const productSales = orders.reduce((acc, order) => {
+        // FIX: Use the generic form of reduce for better type inference, which resolves the error in the following .sort() method.
+        const productSales = orders.reduce<Record<string, number>>((acc, order) => {
             acc[order.product.name] = (acc[order.product.name] || 0) + order.product.quantity;
             return acc;
-        }, {} as Record<string, number>);
+        }, {});
         
         const bestSellingProducts = Object.entries(productSales)
-            // Fix: Use index access in sort to help TypeScript infer types correctly.
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5);
 
         // 3. Top Wilayas
-        const wilayaOrders = orders.reduce((acc, order) => {
+        // FIX: Use the generic form of reduce for better type inference, which resolves the error in the following .sort() method.
+        const wilayaOrders = orders.reduce<Record<string, number>>((acc, order) => {
             acc[order.customer.wilaya] = (acc[order.customer.wilaya] || 0) + 1;
             return acc;
-        }, {} as Record<string, number>);
+        }, {});
 
         const topWilayas = Object.entries(wilayaOrders)
-            // Fix: Use index access in sort to help TypeScript infer types correctly.
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5);
 

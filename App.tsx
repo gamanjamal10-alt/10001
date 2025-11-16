@@ -53,9 +53,18 @@ export default function App() {
         }
         setOrders(loadedOrders);
         
-        // Load admin config
+        // Load admin config or set the default one
         const storedConfig = localStorage.getItem('adminConfig');
-        setAdminConfig(storedConfig ? JSON.parse(storedConfig) : { scriptUrl: '', sheetUrl: '' });
+        if (storedConfig) {
+            setAdminConfig(JSON.parse(storedConfig));
+        } else {
+            const defaultConfig: AdminConfig = {
+                scriptUrl: 'https://script.google.com/macros/s/AKfycbytl-kI4dD7qg6LC7P_wrOC6bwJwfe3MD4yD7uZUYehBpdO1m4nlj3P6WzLKSH9pGgZ/exec',
+                sheetUrl: ''
+            };
+            setAdminConfig(defaultConfig);
+            localStorage.setItem('adminConfig', JSON.stringify(defaultConfig));
+        }
     }, []);
 
     useEffect(() => {
