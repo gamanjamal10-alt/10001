@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { OrderFormData } from '../types';
 import { Input } from './common/Input';
@@ -17,29 +16,29 @@ const OrderForm: React.FC<OrderFormProps> = ({ formData, isLoading, onChange, on
     <form onSubmit={onSubmit} className="p-6 sm:p-8 space-y-6">
       <div className="text-center">
         <ShoppingCartIcon className="w-12 h-12 mx-auto text-primary-500" />
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mt-2">Place Your Order</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Fill out the details below to complete your purchase.</p>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mt-2">إتمام الطلب</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">املأ بياناتك لإرسال الطلب.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Input
-          label="Full Name"
+          label="الاسم الكامل"
           id="name"
           name="name"
           type="text"
           value={formData.name}
           onChange={onChange}
-          placeholder="John Doe"
+          placeholder="مثال: محمد عبدالله"
           required
         />
         <Input
-          label="Phone Number"
+          label="رقم الهاتف"
           id="phone"
           name="phone"
           type="tel"
           value={formData.phone}
           onChange={onChange}
-          placeholder="(555) 123-4567"
+          placeholder="مثال: 0512345678"
           required
         />
       </div>
@@ -47,18 +46,19 @@ const OrderForm: React.FC<OrderFormProps> = ({ formData, isLoading, onChange, on
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
             <Input
-            label="Product Name"
+            label="اسم المنتج"
             id="product"
             name="product"
             type="text"
             value={formData.product}
             onChange={onChange}
-            placeholder="e.g., Premium Widget"
             required
+            readOnly
+            className="bg-gray-100 dark:bg-gray-700/50 cursor-not-allowed"
             />
         </div>
         <Input
-          label="Quantity"
+          label="الكمية"
           id="quantity"
           name="quantity"
           type="number"
@@ -70,29 +70,31 @@ const OrderForm: React.FC<OrderFormProps> = ({ formData, isLoading, onChange, on
       </div>
 
       <Input
-        label="Shipping Address"
+        label="عنوان الشحن"
         id="address"
         name="address"
-        type="text"
+        type="textarea"
+        rows={3}
         value={formData.address}
         onChange={onChange}
-        placeholder="123 Main St, Anytown, USA 12345"
+        placeholder="المدينة، الحي، الشارع، رقم المبنى"
+        required
       />
       
       <Input
-        label="Order Notes (Optional)"
+        label="ملاحظات الطلب (اختياري)"
         id="notes"
         name="notes"
         type="textarea"
         value={formData.notes}
         onChange={onChange}
-        placeholder="Any special instructions?"
-        rows={3}
+        placeholder="أي تعليمات خاصة؟"
+        rows={2}
       />
 
       <div className="pt-4">
         <Button type="submit" isLoading={isLoading} fullWidth>
-          {isLoading ? 'Placing Order...' : 'Submit Order'}
+          {isLoading ? 'جاري الإرسال...' : 'إرسال الطلب'}
         </Button>
       </div>
     </form>
