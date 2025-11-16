@@ -51,41 +51,38 @@ const OrderPage: React.FC<OrderPageProps> = ({ product }) => {
     }
 
     try {
-      // NOTE: Google Apps Script Web Apps have a specific way of handling POST requests
-      // that differs from typical APIs. They often redirect after a POST. To get a JSON
-      // response back reliably without complex server-side CORS setup, a common pattern
-      // is to append the data to the URL and use a fetch with a 'follow' redirect, then
-      // parse the final page's content if needed. However, for a simple "fire and forget"
-      // with a JSON body, 'no-cors' is often used, but it prevents reading the response.
-      // The ideal solution is a properly configured Apps Script that handles CORS pre-flight
-      // requests and returns JSON correctly, but that's beyond the scope of this UI code.
-      // We will assume a simple POST and handle the inability to read the response.
-      
       const response = await fetch(SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // This is often required for simple Apps Script deployments
         headers: {
-            // 'Content-Type': 'application/json' // This header is not allowed in 'no-cors' mode
+          // This Content-Type is a common workaround to avoid CORS preflight issues with Google Apps Script.
+          // The script can still parse the JSON from the post body.
+          'Content-Type': 'text/plain;charset=utf-8',
         },
-        // To send data, a common workaround for 'no-cors' is to use FormData
-        // or URL-encoded data, but the provided script expects JSON. This creates
-        // a conflict. The most likely scenario to work is that the user's script
-        // is published to allow anonymous access and handles the POST correctly.
-        // We will send the JSON as text/plain, another common workaround.
         body: JSON.stringify(formData),
       });
 
-      // Since we are in 'no-cors' mode, we cannot access response.ok, response.status, or the body.
-      // We will optimistically assume success if the fetch promise resolves.
-      // A more robust implementation requires changes on the Google Apps Script side.
+      if (!response.ok) {
+        throw new Error(`فشل الطلب. رمز الحالة: ${response.status}. تأكد من أن السكربت تم نشره بشكل صحيح للوصول العام.`);
+      }
       
-      setSubmittedOrderId(`ORD-${new Date().getTime()}`); // Generate a temporary ID for display
-      setStatus('SUCCESS');
-      setFormData(initialFormData);
+      const result = await response.json();
+      
+      if (result.success && result.orderId) {
+        setSubmittedOrderId(result.orderId);
+        setStatus('SUCCESS');
+        setFormData(initialFormData);
+      } else {
+        throw new Error(result.message || 'رفض السكربت الطلب. تحقق من سجلات التنفيذ في Apps Script.');
+      }
 
     } catch (err) {
       console.error("Submission Error:", err);
-      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير معروف. يرجى التحقق من الكونسول ورابط السكربت.';
+      let errorMessage = 'حدث خطأ غير معروف. يرجى التحقق من الكونسول ورابط السكربت.';
+      if (err instanceof TypeError) { // Often indicates a network error or CORS issue
+          errorMessage = 'حدث خطأ في الشبكة أو مشكلة في CORS. تأكد من أن السكربت منشور كـ "Web App" ويمكن الوصول إليه بواسطة "Anyone".'
+      } else if (err instanceof Error) {
+          errorMessage = err.message;
+      }
       setError(`فشل إرسال الطلب. ${errorMessage}`);
       setStatus('ERROR');
     }
