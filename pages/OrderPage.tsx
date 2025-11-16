@@ -83,7 +83,8 @@ const OrderPage: React.FC<OrderPageProps> = ({ product, adminConfig, onOrderSucc
             },
             product: {
                 name: formData.product,
-                quantity: formData.quantity
+                quantity: formData.quantity,
+                price: product.price // حفظ السعر عند إنشاء الطلب
             },
             notes: formData.notes,
             status: 'قيد التنفيذ'
@@ -100,7 +101,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ product, adminConfig, onOrderSucc
       setError(`فشل إرسال الطلب. ${errorMessage}`);
       setStatus('ERROR');
     }
-  }, [formData, adminConfig.scriptUrl, product.quantity, onOrderSuccess]);
+  }, [formData, adminConfig.scriptUrl, product, onOrderSuccess]);
 
   const renderContent = () => {
     if (status === 'ERROR') {

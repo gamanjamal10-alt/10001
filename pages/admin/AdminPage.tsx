@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Product, AdminConfig, Order } from '../../types';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
+import { ChartBarIcon } from '../../components/icons/ChartBarIcon'; // Import new icon
 
 interface AdminPageProps {
   products: Product[];
@@ -11,11 +12,14 @@ interface AdminPageProps {
   onSaveConfig: (config: AdminConfig) => void;
 }
 
-const AdminDashboardCard: React.FC<{ title: string; value: number; link: string; linkText: string; }> = ({ title, value, link, linkText }) => (
+const AdminDashboardCard: React.FC<{ title: string; value: string | number; link: string; linkText: string; icon?: React.ReactNode }> = ({ title, value, link, linkText, icon }) => (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col justify-between">
-        <div>
-            <h3 className="text-gray-500 dark:text-gray-400 font-medium">{title}</h3>
-            <p className="text-4xl font-bold text-gray-800 dark:text-white mt-2">{value}</p>
+        <div className="flex justify-between items-start">
+            <div>
+                <h3 className="text-gray-500 dark:text-gray-400 font-medium">{title}</h3>
+                <p className="text-4xl font-bold text-gray-800 dark:text-white mt-2">{value}</p>
+            </div>
+            {icon && <div className="text-primary-500">{icon}</div>}
         </div>
         <a href={link} className="mt-6 text-primary-600 dark:text-primary-400 font-semibold hover:underline">
             {linkText} &rarr;
@@ -49,9 +53,16 @@ const AdminPage: React.FC<AdminPageProps> = ({ products, orders, adminConfig, on
         {/* Dashboard Stats */}
         <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">لوحة التحكم</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <AdminDashboardCard title="إجمالي المنتجات" value={products.length} link="#/admin" linkText="إدارة المنتجات" />
                 <AdminDashboardCard title="إجمالي الطلبات" value={orders.length} link="#/admin/orders" linkText="إدارة الطلبات" />
+                <AdminDashboardCard 
+                    title="التقارير والإحصائيات" 
+                    value="عرض" 
+                    link="#/admin/reports" 
+                    linkText="عرض التقارير"
+                    icon={<ChartBarIcon className="w-8 h-8"/>}
+                />
             </div>
         </div>
 

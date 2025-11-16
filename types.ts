@@ -33,6 +33,7 @@ export interface Order {
   product: {
     name: string;
     quantity: number;
+    price: number; // السعر عند وقت الشراء
   };
   notes: string;
   status: OrderStatus;

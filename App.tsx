@@ -6,6 +6,7 @@ import OrderSuccessPage from './pages/OrderSuccessPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminPage from './pages/admin/AdminPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
+import AdminReportsPage from './pages/admin/AdminReportsPage';
 import ProductForm from './pages/admin/ProductForm';
 import { initialProducts } from './data/products';
 import { Product, AdminConfig, Order } from './types';
@@ -23,13 +24,36 @@ export default function App() {
     const [adminConfig, setAdminConfig] = useState<AdminConfig>({ scriptUrl: '', sheetUrl: '' });
 
     useEffect(() => {
-        // Load data from localStorage or use initial data
+        // Load products
         const storedProducts = localStorage.getItem('products');
-        setProducts(storedProducts ? JSON.parse(storedProducts) : initialProducts);
+        const loadedProducts = storedProducts ? JSON.parse(storedProducts) : initialProducts;
+        setProducts(loadedProducts);
 
+        // Load and migrate orders if necessary
         const storedOrders = localStorage.getItem('orders');
-        setOrders(storedOrders ? JSON.parse(storedOrders) : []);
+        let loadedOrders: Order[] = storedOrders ? JSON.parse(storedOrders) : [];
         
+        // One-time migration for old orders without product price
+        const ordersNeedMigration = loadedOrders.some(order => order.product.price === undefined);
+        if (ordersNeedMigration) {
+            loadedOrders = loadedOrders.map(order => {
+                if (order.product.price === undefined) {
+                    const productDetails = loadedProducts.find(p => p.name === order.product.name);
+                    return {
+                        ...order,
+                        product: {
+                            ...order.product,
+                            price: productDetails ? productDetails.price : 0 // Fallback to 0 if product not found
+                        }
+                    };
+                }
+                return order;
+            });
+            localStorage.setItem('orders', JSON.stringify(loadedOrders)); // Save migrated orders
+        }
+        setOrders(loadedOrders);
+        
+        // Load admin config
         const storedConfig = localStorage.getItem('adminConfig');
         setAdminConfig(storedConfig ? JSON.parse(storedConfig) : { scriptUrl: '', sheetUrl: '' });
     }, []);
@@ -81,6 +105,9 @@ export default function App() {
             
             if (path === '/admin/orders') {
                 return <AdminOrdersPage orders={orders} onSave={handleSaveOrders} />;
+            }
+             if (path === '/admin/reports') {
+                return <AdminReportsPage orders={orders} products={products} />;
             }
             if (path === '/admin/add') {
                 return <ProductForm products={products} onSave={handleSaveProducts} />;
