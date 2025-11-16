@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إتمام الطلب</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header">
+        <h1>إتمام الطلب</h1>
+    </header>
+
+    <main class="container">
+        <div class="form-container">
+            <h2>املأ بياناتك لإرسال الطلب</h2>
+            <form id="order-form">
+                <div class="form-group">
+                    <label for="name">الاسم الكامل</label>
+                    <input type="text" id="name" name="name" required placeholder="مثال: محمد عبدالله">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">رقم الهاتف</label>
+                    <input type="tel" id="phone" name="phone" required placeholder="مثال: 0512345678">
+                </div>
+
+                <div class="form-group">
+                    <label for="product">اسم المنتج</label>
+                    <input type="text" id="product" name="product" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity">الكمية</label>
+                    <input type="number" id="quantity" name="quantity" required min="1" value="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="address">عنوان الشحن</label>
+                    <textarea id="address" name="address" rows="3" required placeholder="المدينة، الحي، الشارع، رقم المبنى"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notes">ملاحظات الطلب (اختياري)</label>
+                    <textarea id="notes" name="notes" rows="2" placeholder="أي تعليمات خاصة؟"></textarea>
+                </div>
+                
+                <button type="submit" id="submit-btn" class="btn">إرسال الطلب</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // !! IMPORTANT !!
+        // Replace this URL with your actual Google Apps Script Web App URL.
+        const SCRIPT_URL = "PUT_YOUR_SCRIPT_URL_HERE";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get product name from URL and set it in the readonly input field
+            const params = new URLSearchParams(window.location.search);
+            const productName = params.get('name');
+            const productInput = document.getElementById('product');
+            if (productName) {
+                productInput.value = productName;
+            } else {
+                // If no product name, redirect or show an error
+                alert('لم يتم تحديد أي منتج. سيتم إعادتك للصفحة الرئيسية.');
+                window.location.href = 'home.html';
+            }
+
+            const form = document.getElementById('order-form');
+            const submitBtn = document.getElementById('submit-btn');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                if (SCRIPT_URL === "PUT_YOUR_SCRIPT_URL_HERE") {
+                    alert("خطأ: يرجى تحديث رابط Google Apps Script في ملف order.html");
+                    return;
+                }
+                
+                // Disable button to prevent multiple submissions
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'جاري الإرسال...';
+
+                // Collect form data into an object
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                
+                try {
+                    // Send data to Google Apps Script
+                    // NOTE: The Google Apps Script must be deployed correctly to handle CORS requests.
+                    const response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'cors', // Important for reading the response
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    // The Google Apps Script returns a JSON response
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert(`تم إرسال طلبك بنجاح! رقم الطلب: ${result.orderId}`);
+                        form.reset(); // Clear the form
+                        // Optionally redirect to a "thank you" page
+                        // window.location.href = 'thank-you.html';
+                    } else {
+                        // Show error message from the script
+                        throw new Error(result.message || 'حدث خطأ غير معروف.');
+                    }
+
+                } catch (error) {
+                    console.error('Error submitting form:', error);
+                    alert(`فشل إرسال الطلب. يرجى المحاولة مرة أخرى.\n\nالخطأ: ${error.message}`);
+                } finally {
+                    // Re-enable the button
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'إرسال الطلب';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
